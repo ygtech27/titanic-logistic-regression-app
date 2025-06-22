@@ -1,33 +1,47 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
 import pickle
 
-# Load the trained model
-with open("logistic_model.pkl", "rb") as f:
-    model = pickle.load(f)
+# Load the scaler and the trained model
+with open('scaler.pkl', 'rb') as f:
+    scaler = pickle.load(f)
 
-# Title
-st.title("Titanic Survival Prediction App")
-st.write("Enter the details of the passenger to predict survival.")
+with open('logistic_regression_model.pkl', 'rb') as f:
+    loaded_model = pickle.load(f)
 
-# Input fields
-Pclass = st.selectbox("Passenger Class (1 = 1st, 2 = 2nd, 3 = 3rd)", [1, 2, 3])
-Age = st.slider("Age", 0, 100, 30)
-SibSp = st.number_input("Number of Siblings/Spouses Aboard", min_value=0, max_value=10, value=0)
-Parch = st.number_input("Number of Parents/Children Aboard", min_value=0, max_value=10, value=0)
-Fare = st.number_input("Passenger Fare", min_value=0.0, value=30.0)
-Sex = st.radio("Sex", ["male", "female"])
+# Streamlit app
+st.title('Titanic Survival Prediction')
+age = st.slider('Age', 0, 80, 29)
+fare = st.slider('Fare', 0, 500, 50)
+sex = st.selectbox('Sex', ['male', 'female'])
+embarked = st.selectbox('Embarked', ['C', 'Q', 'S'])
+pclass = st.selectbox('Class', [1, 2, 3])
+sibsp = st.slider('SibSp', 0, 10, 0)
+parch = st.slider('Parch', 0, 10, 0)
 
-# Encode Sex as in training
-Sex_female = 1 if Sex == "female" else 0
-Sex_male = 1 if Sex == "male" else 0
+# Prepare input data
+input_data = pd.DataFrame({
+    'Age': [age],
+    'Fare': [fare],
+    'SibSp': [sibsp],
+    'Parch': [parch],
+    'Sex_male': [1 if sex == 'male' else 0],
+    'Embarked_Q': [1 if embarked == 'Q' else 0],
+    'Embarked_S': [1 if embarked == 'S' else 0],
+    'Pclass_2': [1 if pclass == 2 else 0],
+    'Pclass_3': [1 if pclass == 3 else 0],
+}, index=[0])
 
-# Create input array in the same order as training
-input_data = np.array([[Pclass, Age, SibSp, Parch, Fare, Sex_female, Sex_male]])
+# Ensure all columns match
+missing_cols = set(X.columns) - set(input_data.columns)
+for col in missing_cols:
+    input_data[col] = 0
 
-# Prediction
-if st.button("Predict"):
-    prediction = model.predict(input_data)[0]
-    result = "Survived" if prediction == 1 else "Did Not Survive"
-    st.subheader(f"Prediction: {result}")
+input_data = input_data[X.columns]  # Ensure the order of columns matches
+
+# Standardize the input data
+input_data = scaler.transform(input_data)
+
+# Predict
+survival_prob = loaded_model.predict_proba(input_data)[0][1]
+st.write(f'The probability of survival is {survival_prob:.2f}')
