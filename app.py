@@ -12,7 +12,10 @@ import pickle
 import numpy as np
 
 # Load the trained model
-model = pickle.load(open("logistic_model.pkl", "rb"))
+import os
+model_path = os.path.join(os.path.dirname(__file__), "logistic_model.pkl")
+model = pickle.load(open(model_path, "rb"))
+
 
 st.title("🚢 Titanic Survival Predictor")
 
